@@ -14,7 +14,7 @@ class JadwalController extends Controller
     {
         $jadwals = Jadwal::with('mataKuliah')
             ->where('tahun_ajaran', Krs::TAHUN_AJARAN)
-            ->orderBy('hari')
+            ->orderByRaw("CASE hari WHEN 'Senin' THEN 1 WHEN 'Selasa' THEN 2 WHEN 'Rabu' THEN 3 WHEN 'Kamis' THEN 4 WHEN 'Jumat' THEN 5 WHEN 'Sabtu' THEN 6 ELSE 7 END")
             ->orderBy('jam_mulai')
             ->get()
             ->map(fn (Jadwal $j) => $j->toApi());

@@ -1,58 +1,100 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# SIAKAD — Flutter (Android + Web) + Laravel API
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
-
-## About Laravel
-
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
-
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
-
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
-
-## Learning Laravel
-
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework.
-
-In addition, [Laracasts](https://laracasts.com) contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
-
-You can also watch bite-sized lessons with real-world projects on [Laravel Learn](https://laravel.com/learn), where you will be guided through building a Laravel application from scratch while learning PHP fundamentals.
-
-## Agentic Development
-
-Laravel's predictable structure and conventions make it ideal for AI coding agents like Claude Code, Cursor, and GitHub Copilot. Install [Laravel Boost](https://laravel.com/docs/ai) to supercharge your AI workflow:
-
-```bash
-composer require laravel/boost --dev
-
-php artisan boost:install
+```
+siakad/
+├── backend/       <- file-file Laravel yang DITIMPA/DITAMBAH ke proyek Laravel baru
+├── flutter_app/   <- file-file Flutter (lib/ + pubspec.yaml)
+└── docs/RANCANGAN-UTS.md   <- bahan dokumen & slide UTS
 ```
 
-Boost provides your agent 15+ tools and skills that help agents build Laravel applications while following best practices.
+Fitur tahap ini:
+- **Mahasiswa**: login NIM, jadwal kuliah, pengisian KRS (aturan: tidak duplikat, maks 24 SKS,
+  tidak bentrok, kuota), presensi dengan kode 6 angka, nilai + IPK.
+- **Dosen**: login email, daftar kelas yang diampu, buka/tutup sesi presensi (kode angka),
+  lihat kehadiran per pertemuan, input/ubah nilai peserta kelas.
 
-## Contributing
+Alur presensi: dosen membuka sesi (kode 6 angka dibuat otomatis, berlaku 1–120 menit) → dosen
+membagikan kode → mahasiswa memasukkan kode di menu Presensi. Mahasiswa tidak bisa presensi
+sebelum dosen membuka sesi atau setelah sesi ditutup/habis waktu.
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+Akun demo (setelah `php artisan migrate:fresh --seed`):
 
-## Code of Conduct
+| Peran | Login | Password |
+|---|---|---|
+| Mahasiswa | NIM `12230001` s.d. `12230010` | sama dengan NIM |
+| Dosen A | `dosen.a@siakad.test` (IF301, IF302, IF312) | `dosen123` |
+| Dosen B | `dosen.b@siakad.test` (IF303, IF304, IF305) | `dosen123` |
+| Dosen C | `dosen.c@siakad.test` (IF306, IF307, IF308) | `dosen123` |
+| Dosen D | `dosen.d@siakad.test` (IF309, IF310, IF311) | `dosen123` |
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+Data awal: 12 kelas semester ini (tanpa riwayat semester lalu). Akun `12230001` KRS-nya kosong
+untuk uji coba; `12230002`–`12230006` sudah mengambil kelas Dosen A, `12230007`–`12230010`
+sudah mengambil kelas Dosen B, C, dan D.
 
-## Security Vulnerabilities
+## A. Backend Laravel
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+Prasyarat: PHP 8.2+, Composer, MySQL (XAMPP/Laragon juga boleh).
 
-## License
+```bash
+composer create-project laravel/laravel siakad-api
+cd siakad-api
+php artisan install:api          # memasang Laravel Sanctum + routes/api.php
+```
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+1. Ubah `.env`: `DB_CONNECTION=mysql`, `DB_DATABASE=siakad`, `DB_USERNAME`, `DB_PASSWORD`; buat database `siakad`.
+2. Salin isi folder `backend/` ke dalam `siakad-api/` (timpa `app/Models/User.php`,
+   `routes/api.php`, `database/seeders/DatabaseSeeder.php`).
+3. Jalankan:
+
+```bash
+php artisan migrate:fresh --seed
+php artisan serve --host=0.0.0.0 --port=8000
+```
+
+Uji cepat (PowerShell/terminal):
+
+```bash
+curl -X POST http://localhost:8000/api/login -H "Accept: application/json" -d "username=12230001&password=12230001"
+```
+
+## B. Flutter
+
+```bash
+cd flutter_app
+flutter create . --platforms=android,web   # membuat folder android/ & web/
+flutter pub get
+flutter run -d chrome                      # web
+flutter run                                # emulator Android
+```
+
+`flutter create .` tidak menimpa `lib/` dan `pubspec.yaml` yang sudah ada — tetapi cek dulu
+bahwa `lib/main.dart` masih isi dari proyek ini; jika terganti, salin ulang.
+
+Alamat API diatur di `lib/core/config.dart`
+(emulator Android memakai `10.0.2.2`, HP asli memakai IP laptop).
+
+Android 9+ memblokir HTTP polos. Untuk pengembangan, tambahkan di
+`android/app/src/main/AndroidManifest.xml` pada tag `<application ...>`:
+`android:usesCleartextTraffic="true"` — **hapus/ganti HTTPS saat produksi.**
+
+## Endpoint
+
+| Method | Path | Auth | Fungsi |
+|---|---|---|---|
+| POST | /api/login | – | Login `username` (NIM/email) + password, balas token |
+| GET | /api/me | ✔ | Profil mahasiswa |
+| POST | /api/logout | ✔ | Cabut token |
+| GET | /api/jadwal | ✔ | Kelas yang dibuka periode aktif |
+| GET | /api/krs | ✔ | KRS periode aktif + total SKS |
+| POST | /api/krs | ✔ | Ambil kelas `{jadwal_id}` |
+| DELETE | /api/krs/{id} | ✔ | Batalkan kelas |
+| GET | /api/nilai | ✔ | Nilai + IPK |
+| GET | /api/dosen/kelas | ✔ dosen | Kelas yang diampu |
+| GET | /api/dosen/kelas/{id}/mahasiswa | ✔ dosen | Peserta kelas + nilai |
+| PUT | /api/dosen/nilai | ✔ dosen | Simpan nilai `{krs_id, nilai_angka}` |
+| GET | /api/presensi | ✔ | Rekap kehadiran per kelas (mahasiswa) |
+| POST | /api/presensi | ✔ | Isi presensi `{kode}` (maks 10 percobaan/menit) |
+| GET | /api/dosen/kelas/{id}/presensi | ✔ dosen | Daftar pertemuan satu kelas |
+| POST | /api/dosen/kelas/{id}/presensi | ✔ dosen | Buka sesi `{durasi_menit}` |
+| GET | /api/dosen/presensi/{sesiId} | ✔ dosen | Siapa yang hadir pada satu pertemuan |
+| POST | /api/dosen/presensi/{sesiId}/tutup | ✔ dosen | Tutup sesi lebih awal |

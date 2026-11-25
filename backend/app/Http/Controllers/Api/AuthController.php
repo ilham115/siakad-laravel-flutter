@@ -4,41 +4,46 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Mahasiswa;
+use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 
 class AuthController extends Controller
 {
-    /** POST /api/login  {nim, password} -> {token, user} */
+    /**
+     * POST /api/login  {username, password} -> {token, user}
+     * Mahasiswa login dengan NIM, dosen login dengan email.
+     */
     public function login(Request $request): JsonResponse
     {
         $data = $request->validate([
-            'nim' => 'required|string',
+            'username' => 'required|string',
             'password' => 'required|string',
         ]);
 
-        $mahasiswa = Mahasiswa::with('user')->where('nim', $data['nim'])->first();
+        $mahasiswa = Mahasiswa::with('user')->where('nim', $data['username'])->first();
 
-        if (! $mahasiswa || ! Hash::check($data['password'], $mahasiswa->user->password)) {
-            return response()->json(['message' => 'NIM atau password salah.'], 401);
+        $user = $mahasiswa
+            ? $mahasiswa->user
+            : User::where('email', $data['username'])->where('role', 'dosen')->first();
+
+        if (! $user || ! Hash::check($data['password'], $user->password)) {
+            return response()->json(['message' => 'NIM/email atau password salah.'], 401);
         }
 
-        $token = $mahasiswa->user->createToken('flutter-app')->plainTextToken;
+        $token = $user->createToken('flutter-app')->plainTextToken;
 
         return response()->json([
             'token' => $token,
-            'user' => $this->profil($mahasiswa),
+            'user' => $this->profil($user),
         ]);
     }
 
     /** GET /api/me */
     public function me(Request $request): JsonResponse
     {
-        $mahasiswa = $request->user()->mahasiswa()->with('user')->first();
-        abort_if(! $mahasiswa, 403, 'Akun ini bukan akun mahasiswa.');
-
-        return response()->json($this->profil($mahasiswa));
+        return response()->json($this->profil($request->user()));
     }
 
     /** POST /api/logout */
@@ -49,14 +54,24 @@ class AuthController extends Controller
         return response()->json(['message' => 'Berhasil keluar.']);
     }
 
-    private function profil(Mahasiswa $m): array
+    private function profil(User $user): array
     {
-        return [
-            'nama' => $m->user->name,
-            'nim' => $m->nim,
-            'prodi' => $m->prodi,
-            'angkatan' => $m->angkatan,
-            'semester_aktif' => $m->semester_aktif,
+        $profil = [
+            'nama' => $user->name,
+            'role' => $user->role,
+            'email' => $user->email,
         ];
+
+        $m = $user->mahasiswa;
+        if ($m) {
+            $profil += [
+                'nim' => $m->nim,
+                'prodi' => $m->prodi,
+                'angkatan' => $m->angkatan,
+                'semester_aktif' => $m->semester_aktif,
+            ];
+        }
+
+        return $profil;
     }
 }

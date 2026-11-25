@@ -11,7 +11,7 @@ class Jadwal extends Model
     protected $table = 'jadwals';
 
     protected $fillable = [
-        'mata_kuliah_id', 'tahun_ajaran', 'dosen', 'hari', 'jam_mulai', 'jam_selesai', 'ruang', 'kuota',
+        'mata_kuliah_id', 'tahun_ajaran', 'dosen_id', 'dosen', 'hari', 'jam_mulai', 'jam_selesai', 'ruang', 'kuota',
     ];
 
     public function mataKuliah(): BelongsTo
